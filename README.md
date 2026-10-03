@@ -2,6 +2,7 @@
 
 **Meta-análisis completo en el navegador** — del dataset al forest plot, heterogeneidad, sensibilidad y GRADE.
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.23124341.svg)](https://doi.org/10.5281/zenodo.23124341)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 > Herramienta del catálogo [fborrasumh/ia](https://fborrasumh.github.io/ia/) · Universidad Miguel Hernández de Elche
@@ -56,6 +57,7 @@ ORCID: [0000-0002-5519-4573](https://orcid.org/0000-0002-5519-4573)
   title   = {MetaAnálisisIA},
   version = {0.2.0},
   year    = {2026},
+  doi     = {10.5281/zenodo.23124341},
   url     = {https://fborrasumh.github.io/metaanalisisia/},
   note    = {Meta-análisis en el navegador}
 }
