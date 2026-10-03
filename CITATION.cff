@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "MetaAnálisisIA"
+abstract: "Herramienta de meta-análisis completa en el navegador: carga de datos, modelos de efectos fijos y aleatorios, forest plot, heterogeneidad, funnel plot, leave-one-out, GRADE simplificado y exportación. Funciona con la clave de IA del usuario y sin instalar nada."
+authors:
+  - family-names: "Borrás Rocher"
+    given-names: "Fernando"
+    orcid: "https://orcid.org/0000-0002-5519-4573"
+    affiliation: "Universidad Miguel Hernández de Elche"
+license: MIT
+version: "0.1.0"
+date-released: "2026-10-03"
+url: "https://fborrasumh.github.io/metaanalisisia/"
+keywords:
+  - meta-analysis
+  - systematic-review
+  - evidence-synthesis
+  - forest-plot
+  - GRADE
+  - browser-based
+  - research-tools
+  - UMH

@@ -1,0 +1,1542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MetaAnálisisIA · Meta-análisis en el navegador</title>
+<meta name="description" content="Meta-análisis completo en el navegador: forest plot, heterogeneidad, funnel, leave-one-out, Egger, subgrupos, GRADE. UMH.">
+<meta name="author" content="Fernando Borrás Rocher">
+<meta name="orcid" content="0000-0002-5519-4573">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+:root {
+  --bg: #f4f5f2;
+  --surface: #ffffff;
+  --border: #e2e1dc;
+  --border-strong: #c9c8c2;
+  --text: #161513;
+  --muted: #6f6d67;
+  --inv: #0f5c42;
+  --inv-mid: #1a7a58;
+  --inv-soft: #e0f2ea;
+  --inv-glow: rgba(15,92,66,.12);
+  --doc: #1a4fd8;
+  --warn: #b83a0c;
+  --warn-soft: #fde9e3;
+  --amber: #9a7209;
+  --amber-soft: #faf0d6;
+  --radius: 12px;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.04);
+  --shadow-lg: 0 4px 24px rgba(0,0,0,.07);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, h4 { font-family: 'Sora', sans-serif; font-weight: 700; letter-spacing: -.02em; }
+a { color: var(--doc); text-decoration: none; }
+a:hover { text-decoration: underline; }
+button, input, select, textarea { font: inherit; }
+
+/* ── Header ── */
+.hero {
+  background: linear-gradient(145deg, #0d1f18 0%, #122a20 40%, #1a1916 100%);
+  color: #fff;
+  padding: 36px 20px 32px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(26,122,88,.35), transparent 60%);
+  pointer-events: none;
+}
+.hero .eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: .18em;
+  text-transform: uppercase; color: #7a9e8e; margin-bottom: 12px; position: relative;
+}
+.hero h1 {
+  font-size: clamp(1.75rem, 4.5vw, 2.5rem); font-weight: 800;
+  position: relative; line-height: 1.15;
+}
+.hero h1 span { color: #5ee4a8; }
+.hero .sub {
+  color: #9bb5a8; font-size: .95rem; max-width: 480px;
+  margin: 10px auto 0; position: relative; line-height: 1.6;
+}
+.hero-badges {
+  display: flex; justify-content: center; gap: 8px; flex-wrap: wrap;
+  margin-top: 18px; position: relative;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 99px; font-size: 11px; font-weight: 600;
+  background: rgba(255,255,255,.08); color: #b8d4c8; border: 1px solid rgba(255,255,255,.1);
+}
+
+/* ── Layout ── */
+.app { max-width: 980px; margin: 0 auto; padding: 0 16px 100px; }
+
+/* ── Author ── */
+.author-card {
+  display: flex; align-items: center; gap: 16px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px 18px; margin: -20px 0 0;
+  box-shadow: var(--shadow-lg); position: relative; z-index: 2;
+}
+.author-avatar {
+  width: 52px; height: 52px; border-radius: 14px;
+  background: linear-gradient(135deg, var(--inv-soft), #c8e8d8);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--inv); flex-shrink: 0;
+}
+.author-card .name { font-weight: 700; font-size: 15px; }
+.author-card .aff { font-size: 13px; color: var(--muted); margin-top: 1px; }
+.author-card .orcid {
+  font-size: 12px; color: var(--inv); display: inline-flex;
+  align-items: center; gap: 4px; margin-top: 3px; font-weight: 500;
+}
+.author-card .orcid:hover { text-decoration: underline; }
+
+/* ── Stepper ── */
+.stepper {
+  display: flex; gap: 6px; margin: 28px 0 18px; flex-wrap: wrap;
+}
+.stepper button {
+  flex: 1; min-width: 100px; padding: 11px 8px;
+  border: 1px solid var(--border-strong); background: var(--surface);
+  border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 600;
+  color: var(--muted); transition: all .18s; position: relative;
+}
+.stepper button .num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%; font-size: 11px;
+  background: var(--border); color: var(--muted); margin-right: 5px;
+  transition: .18s;
+}
+.stepper button.active {
+  background: var(--inv); color: #fff; border-color: var(--inv);
+  box-shadow: 0 2px 12px var(--inv-glow);
+}
+.stepper button.active .num { background: rgba(255,255,255,.25); color: #fff; }
+.stepper button.done {
+  background: var(--inv-soft); color: var(--inv); border-color: #a8d9c4;
+}
+.stepper button.done .num { background: var(--inv); color: #fff; }
+.stepper button:hover:not(.active) { background: #f0efe9; border-color: #bbb; }
+
+/* ── Panels ── */
+.panel {
+  display: none; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 26px 22px; box-shadow: var(--shadow);
+  animation: fadeIn .25s ease;
+}
+.panel.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.panel h2 { font-size: 1.2rem; margin-bottom: 4px; }
+.panel .hint { font-size: 13.5px; color: var(--muted); margin-bottom: 18px; line-height: 1.5; }
+
+/* ── Forms ── */
+label {
+  display: block; font-size: 11px; font-weight: 600; color: var(--muted);
+  margin-bottom: 5px; text-transform: uppercase; letter-spacing: .05em;
+}
+input[type=text], input[type=password], input[type=number], select, textarea {
+  width: 100%; padding: 10px 13px; border: 1px solid var(--border-strong);
+  border-radius: 9px; background: #fafaf8; margin-bottom: 14px;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--inv-mid); background: #fff;
+  box-shadow: 0 0 0 3px var(--inv-glow);
+}
+textarea { min-height: 130px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 12.5px; line-height: 1.5; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+@media (max-width: 600px) { .row, .row-3 { grid-template-columns: 1fr; } }
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 10px 18px; border-radius: 9px; border: 0;
+  font-weight: 600; font-size: 13.5px; cursor: pointer; transition: all .15s;
+}
+.btn-primary {
+  background: var(--inv); color: #fff;
+  box-shadow: 0 1px 3px rgba(15,92,66,.25);
+}
+.btn-primary:hover { background: #0a4a34; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(15,92,66,.3); }
+.btn-primary:active { transform: none; }
+.btn-secondary {
+  background: #f3f2ee; color: var(--text); border: 1px solid var(--border-strong);
+}
+.btn-secondary:hover { background: #eae9e3; }
+.btn-ghost { background: transparent; color: var(--muted); padding: 8px 10px; }
+.btn-ghost:hover { color: var(--text); background: #f0efe9; }
+.btn-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid #f0c4b4; }
+.btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 20px; align-items: center; }
+
+/* ── Tables ── */
+.table-wrap {
+  overflow-x: auto; margin: 12px 0;
+  border: 1px solid var(--border); border-radius: 10px;
+}
+table.data { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.data th {
+  background: #f8f7f4; text-align: left; padding: 9px 12px;
+  font-size: 10.5px; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600;
+}
+table.data td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+table.data tr:last-child td { border-bottom: 0; }
+table.data tr:hover td { background: #fafaf8; }
+table.data input {
+  margin: 0; padding: 5px 8px; font-size: 13px; background: #fff;
+  border: 1px solid transparent; border-radius: 6px;
+}
+table.data input:focus { border-color: var(--inv-mid); box-shadow: 0 0 0 2px var(--inv-glow); }
+
+/* ── Stats cards ── */
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px; margin: 16px 0;
+}
+.stat-card {
+  background: linear-gradient(160deg, #f8faf8, #f0f5f2);
+  border: 1px solid #d4e5dc; border-radius: 11px;
+  padding: 14px 12px; text-align: center; transition: .15s;
+}
+.stat-card:hover { border-color: #a8d9c4; box-shadow: 0 2px 8px var(--inv-glow); }
+.stat-card .val {
+  font-family: 'Sora', sans-serif; font-size: 1.3rem; font-weight: 700;
+  color: var(--inv); line-height: 1.2;
+}
+.stat-card .val.small { font-size: 1.05rem; }
+.stat-card .lbl {
+  font-size: 10.5px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .05em; margin-top: 4px; font-weight: 500;
+}
+
+/* ── Plots ── */
+.plot-box {
+  background: #fff; border: 1px solid var(--border); border-radius: 11px;
+  padding: 16px; margin: 14px 0; overflow-x: auto; position: relative;
+}
+.plot-box canvas { display: block; max-width: 100%; }
+.plot-toolbar {
+  display: flex; gap: 6px; justify-content: flex-end; margin-bottom: 8px;
+}
+.plot-toolbar .btn { padding: 5px 10px; font-size: 12px; }
+
+/* ── Messages ── */
+.msg {
+  padding: 12px 15px; border-radius: 10px; font-size: 13px; margin: 12px 0;
+  display: flex; gap: 10px; align-items: flex-start; line-height: 1.5;
+}
+.msg i { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.msg-info { background: #eef3ff; color: #1a3a8a; border: 1px solid #d0dbf5; }
+.msg-ok { background: var(--inv-soft); color: var(--inv); border: 1px solid #b5dfc9; }
+.msg-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid #f0c4b4; }
+.msg-amber { background: var(--amber-soft); color: var(--amber); border: 1px solid #edd9a0; }
+
+/* ── Section titles inside panels ── */
+.section-title {
+  font-size: 14px; font-weight: 700; margin: 22px 0 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+.section-title i { color: var(--inv); font-size: 17px; }
+.section-title:first-child { margin-top: 0; }
+
+/* ── Tabs inside results ── */
+.tabs { display: flex; gap: 4px; margin: 16px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 0; }
+.tabs button {
+  padding: 8px 14px; border: 0; background: transparent; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; transition: .15s;
+}
+.tabs button.active { color: var(--inv); border-bottom-color: var(--inv); }
+.tabs button:hover:not(.active) { color: var(--text); }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── AI box ── */
+.ai-box {
+  background: linear-gradient(135deg, #f8f7f4, #f0f5f2);
+  border: 1px solid var(--border); border-radius: 11px; padding: 4px 16px 4px;
+  margin: 12px 0;
+}
+.ai-box summary {
+  cursor: pointer; font-weight: 600; font-size: 13px; padding: 12px 0;
+  list-style: none; display: flex; align-items: center; gap: 8px;
+}
+.ai-box summary::-webkit-details-marker { display: none; }
+.ai-box summary i { color: var(--inv); }
+
+/* ── Limits / footer ── */
+.limits {
+  font-size: 12px; color: var(--muted); margin-top: 24px;
+  padding-top: 16px; border-top: 1px solid var(--border); line-height: 1.55;
+}
+.limits strong { color: var(--text); }
+footer {
+  text-align: center; padding: 28px 16px; font-size: 12px; color: var(--muted);
+}
+footer a { color: var(--doc); }
+
+/* ── Compare cards ── */
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+@media (max-width: 560px) { .compare-grid { grid-template-columns: 1fr; } }
+.compare-card {
+  border: 1px solid var(--border); border-radius: 11px; padding: 14px;
+  background: #fafaf8;
+}
+.compare-card h4 { font-size: 13px; margin-bottom: 8px; color: var(--inv); }
+.compare-card .big { font-family: 'Sora', sans-serif; font-size: 1.4rem; font-weight: 700; }
+.compare-card .meta { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* ── Chip ── */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 99px; font-size: 11px; font-weight: 600;
+}
+.chip-ok { background: var(--inv-soft); color: var(--inv); }
+.chip-warn { background: var(--warn-soft); color: var(--warn); }
+.chip-amber { background: var(--amber-soft); color: var(--amber); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <p class="eyebrow">fborrasumh · UMH · Investigación</p>
+  <h1>Meta<span>Análisis</span>IA</h1>
+  <p class="sub">Del dataset al forest plot, heterogeneidad, sensibilidad y GRADE — todo en el navegador.</p>
+  <div class="hero-badges">
+    <span class="badge"><i class="ti ti-chart-dots-3"></i> Forest &amp; Funnel</span>
+    <span class="badge"><i class="ti ti-math-function"></i> DL · FE</span>
+    <span class="badge"><i class="ti ti-shield-check"></i> Privacidad local</span>
+    <span class="badge"><i class="ti ti-brand-r"></i> Export R</span>
+  </div>
+</header>
+
+<div class="app">
+
+  <div class="author-card">
+    <div class="author-avatar"><i class="ti ti-user"></i></div>
+    <div style="flex:1">
+      <div class="name">Fernando Borrás Rocher</div>
+      <div class="aff">Universidad Miguel Hernández de Elche</div>
+      <a class="orcid" href="https://orcid.org/0000-0002-5519-4573" target="_blank" rel="noopener">
+        <i class="ti ti-id"></i> 0000-0002-5519-4573
+      </a>
+    </div>
+    <div style="text-align:right;font-size:11px;color:var(--muted)">
+      <div>v0.2.0</div>
+      <div style="margin-top:2px">MIT</div>
+    </div>
+  </div>
+
+  <!-- Stepper -->
+  <div class="stepper" id="stepper">
+    <button type="button" class="active" data-step="0" onclick="go(0)"><span class="num">1</span> Datos</button>
+    <button type="button" data-step="1" onclick="go(1)"><span class="num">2</span> Modelo</button>
+    <button type="button" data-step="2" onclick="go(2)"><span class="num">3</span> Resultados</button>
+    <button type="button" data-step="3" onclick="go(3)"><span class="num">4</span> Sensibilidad</button>
+    <button type="button" data-step="4" onclick="go(4)"><span class="num">5</span> Informe</button>
+  </div>
+
+  <!-- ════════ STEP 0: DATOS ════════ -->
+  <section class="panel active" id="panel-0">
+    <h2>Datos del meta-análisis</h2>
+    <p class="hint">Carga un CSV, pega datos o usa el ejemplo. Mínimo: <code>study</code>, <code>yi</code> (efecto), <code>sei</code> (error estándar). Opcional: <code>group</code> para subgrupos.</p>
+
+    <div class="actions" style="margin-top:0">
+      <button class="btn btn-primary" type="button" onclick="loadDemo()"><i class="ti ti-flask"></i> Ejemplo demo</button>
+      <button class="btn btn-secondary" type="button" onclick="document.getElementById('fileIn').click()"><i class="ti ti-upload"></i> Subir CSV</button>
+      <button class="btn btn-secondary" type="button" onclick="addEmptyRow()"><i class="ti ti-plus"></i> Añadir fila</button>
+      <input type="file" id="fileIn" accept=".csv,.txt,.tsv" hidden onchange="handleFile(event)">
+    </div>
+
+    <label style="margin-top:18px">Pegar CSV / TSV</label>
+    <textarea id="rawData" placeholder="study,yi,sei,ni,group&#10;Smith 2018,0.42,0.15,120,A&#10;Jones 2019,0.18,0.22,85,B&#10;..."></textarea>
+
+    <div class="actions">
+      <button class="btn btn-primary" type="button" onclick="parseRaw()"><i class="ti ti-table"></i> Parsear datos</button>
+      <button class="btn btn-ghost" type="button" onclick="document.getElementById('rawData').value=''"><i class="ti ti-eraser"></i> Limpiar</button>
+    </div>
+
+    <div id="dataPreview" style="display:none">
+      <div class="section-title"><i class="ti ti-list-check"></i> Vista previa · <span id="nStudies">0</span> estudios</div>
+      <div class="table-wrap">
+        <table class="data" id="dataTable">
+          <thead>
+            <tr>
+              <th>Estudio</th><th>yi</th><th>sei</th><th>ni</th><th>Grupo</th><th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div id="dataMsg"></div>
+      <div class="actions">
+        <button class="btn btn-primary" type="button" onclick="go(1)">Continuar al modelo <i class="ti ti-arrow-right"></i></button>
+      </div>
+    </div>
+
+    <div class="limits">
+      <strong>Columnas reconocidas:</strong>
+      <code>study / author</code> ·
+      <code>yi / effect / es / logor / md / smd</code> ·
+      <code>sei / se / stderr</code> ·
+      <code>ni / n</code> ·
+      <code>group / subgroup</code>.
+      También: <code>or/rr</code> + <code>ci_low</code> + <code>ci_high</code> → se transforman a log-escala.
+    </div>
+  </section>
+
+  <!-- ════════ STEP 1: MODELO ════════ -->
+  <section class="panel" id="panel-1">
+    <h2>Configuración del modelo</h2>
+    <p class="hint">Elige medida de efecto y modelo. Todos los cálculos se ejecutan en tu navegador.</p>
+
+    <div class="row">
+      <div>
+        <label>Medida de efecto</label>
+        <select id="measure">
+          <option value="generic">Genérico (yi ya en la escala deseada)</option>
+          <option value="logor">Log Odds Ratio</option>
+          <option value="logrr">Log Risk Ratio</option>
+          <option value="md">Mean Difference (MD)</option>
+          <option value="smd">Standardized MD (SMD)</option>
+        </select>
+      </div>
+      <div>
+        <label>Modelo principal</label>
+        <select id="model">
+          <option value="RE">Efectos aleatorios (DerSimonian-Laird)</option>
+          <option value="FE">Efectos fijos (inversa de varianza)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>Nivel de confianza (%)</label>
+        <input type="number" id="confLevel" value="95" min="80" max="99" step="1">
+      </div>
+      <div>
+        <label>Comparar FE vs RE</label>
+        <select id="compareModels">
+          <option value="yes">Sí — mostrar ambos</option>
+          <option value="no">No — solo el elegido</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="msg msg-info">
+      <i class="ti ti-info-circle"></i>
+      <div><strong>Modo docente activo.</strong> En resultados verás explicaciones de I², τ², Q, intervalo de predicción y prueba de Egger.</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" type="button" onclick="go(0)"><i class="ti ti-arrow-left"></i> Datos</button>
+      <button class="btn btn-primary" type="button" onclick="runMeta(); go(2)">Calcular meta-análisis <i class="ti ti-arrow-right"></i></button>
+    </div>
+  </section>
+
+  <!-- ════════ STEP 2: RESULTADOS ════════ -->
+  <section class="panel" id="panel-2">
+    <h2>Resultados</h2>
+    <p class="hint" id="resultHint">Resumen del efecto combinado, heterogeneidad y gráficos.</p>
+
+    <div class="stats-grid" id="summaryStats"></div>
+
+    <!-- FE vs RE comparison -->
+    <div id="compareBox" style="display:none">
+      <div class="section-title"><i class="ti ti-arrows-diff"></i> Comparación FE vs RE</div>
+      <div class="compare-grid" id="compareGrid"></div>
+    </div>
+
+    <div class="tabs" id="resultTabs">
+      <button type="button" class="active" onclick="showTab('forest',this)">Forest plot</button>
+      <button type="button" onclick="showTab('funnel',this)">Funnel &amp; Egger</button>
+      <button type="button" onclick="showTab('weights',this)">Pesos</button>
+      <button type="button" onclick="showTab('subgroups',this)">Subgrupos</button>
+    </div>
+
+    <div class="tab-pane active" id="tab-forest">
+      <div class="plot-toolbar">
+        <button class="btn btn-secondary" type="button" onclick="downloadCanvas('forestCanvas','forest_plot.png')"><i class="ti ti-photo"></i> PNG</button>
+      </div>
+      <div class="plot-box"><canvas id="forestCanvas" width="860" height="420"></canvas></div>
+      <div id="predInterval" class="msg msg-amber" style="display:none"></div>
+    </div>
+
+    <div class="tab-pane" id="tab-funnel">
+      <div class="plot-toolbar">
+        <button class="btn btn-secondary" type="button" onclick="downloadCanvas('funnelCanvas','funnel_plot.png')"><i class="ti ti-photo"></i> PNG</button>
+      </div>
+      <div class="plot-box"><canvas id="funnelCanvas" width="460" height="360"></canvas></div>
+      <div id="eggerBox" class="msg msg-info" style="display:none"></div>
+    </div>
+
+    <div class="tab-pane" id="tab-weights">
+      <div class="table-wrap">
+        <table class="data" id="weightsTable">
+          <thead><tr><th>Estudio</th><th>yi</th><th>SE</th><th>Peso %</th><th>IC 95 %</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="tab-subgroups">
+      <div id="subgroupContent">
+        <p class="hint">Si tus datos incluyen la columna <code>group</code>, aquí verás el meta-análisis por subgrupo.</p>
+      </div>
+    </div>
+
+    <div id="heteroExplain" class="msg msg-info" style="display:none"></div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" type="button" onclick="go(1)"><i class="ti ti-arrow-left"></i> Modelo</button>
+      <button class="btn btn-primary" type="button" onclick="runSensitivity(); go(3)">Análisis de sensibilidad <i class="ti ti-arrow-right"></i></button>
+    </div>
+  </section>
+
+  <!-- ════════ STEP 3: SENSIBILIDAD ════════ -->
+  <section class="panel" id="panel-3">
+    <h2>Análisis de sensibilidad</h2>
+    <p class="hint">Leave-one-out, influencia y meta-análisis acumulativo.</p>
+
+    <div class="tabs" id="sensTabs">
+      <button type="button" class="active" onclick="showSensTab('loo',this)">Leave-one-out</button>
+      <button type="button" onclick="showSensTab('influence',this)">Influencia</button>
+      <button type="button" onclick="showSensTab('cumulative',this)">Acumulativo</button>
+    </div>
+
+    <div class="tab-pane active" id="stab-loo">
+      <div class="table-wrap">
+        <table class="data" id="looTable">
+          <thead><tr><th>Omitido</th><th>Efecto</th><th>IC 95 %</th><th>I²</th><th>Δ efecto</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="tab-pane" id="stab-influence">
+      <div class="plot-toolbar">
+        <button class="btn btn-secondary" type="button" onclick="downloadCanvas('influenceCanvas','influence.png')"><i class="ti ti-photo"></i> PNG</button>
+      </div>
+      <div class="plot-box"><canvas id="influenceCanvas" width="860" height="300"></canvas></div>
+    </div>
+
+    <div class="tab-pane" id="stab-cumulative">
+      <div class="plot-toolbar">
+        <button class="btn btn-secondary" type="button" onclick="downloadCanvas('cumulCanvas','cumulative.png')"><i class="ti ti-photo"></i> PNG</button>
+      </div>
+      <div class="plot-box"><canvas id="cumulCanvas" width="860" height="360"></canvas></div>
+      <p class="hint" style="margin-top:8px">Estudios ordenados por precisión (SE ascendente). Muestra cómo se estabiliza el efecto al ir añadiendo evidencia.</p>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" type="button" onclick="go(2)"><i class="ti ti-arrow-left"></i> Resultados</button>
+      <button class="btn btn-primary" type="button" onclick="go(4)">GRADE e informe <i class="ti ti-arrow-right"></i></button>
+    </div>
+  </section>
+
+  <!-- ════════ STEP 4: INFORME ════════ -->
+  <section class="panel" id="panel-4">
+    <h2>GRADE e informe</h2>
+    <p class="hint">Valoración orientativa de la certeza y resumen narrativo. La IA solo redacta; los números los calcula el código.</p>
+
+    <div class="ai-box">
+      <details>
+        <summary><i class="ti ti-key"></i> Configuración de IA (opcional)</summary>
+        <div style="padding-bottom:14px">
+          <div class="row">
+            <div>
+              <label>Proveedor</label>
+              <select id="aiProvider" onchange="syncModelPlaceholder()">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Claude (Anthropic)</option>
+                <option value="google">Gemini (Google)</option>
+              </select>
+            </div>
+            <div>
+              <label>Modelo</label>
+              <input type="text" id="aiModel" value="gpt-4o-mini">
+            </div>
+          </div>
+          <label>API Key (solo en tu navegador)</label>
+          <input type="password" id="apiKey" placeholder="sk-… / sk-ant-… / AIza…">
+          <p style="font-size:12px;color:var(--muted);margin-top:-8px">Nunca se envía a un servidor propio. Solo al proveedor que elijas, y solo cuando pidas narrativa con IA.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="section-title"><i class="ti ti-checklist"></i> Summary of Findings (orientativo)</div>
+    <div class="table-wrap">
+      <table class="data" id="gradeTable">
+        <thead>
+          <tr><th>Outcome</th><th>k</th><th>Efecto (IC)</th><th>Certeza</th><th>Comentario</th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="actions" style="margin-bottom:14px;margin-top:10px">
+      <button class="btn btn-secondary" type="button" onclick="buildGradeManual()"><i class="ti ti-checklist"></i> GRADE sin IA</button>
+      <button class="btn btn-primary" type="button" onclick="buildGradeAI()"><i class="ti ti-sparkles"></i> GRADE + narrativa con IA</button>
+    </div>
+
+    <label>Resumen narrativo (editable)</label>
+    <textarea id="narrative" rows="9" placeholder="El resumen aparecerá aquí…"></textarea>
+
+    <div class="section-title"><i class="ti ti-download"></i> Exportar</div>
+    <div class="actions" style="margin-top:8px">
+      <button class="btn btn-secondary" type="button" onclick="exportCSV()"><i class="ti ti-file-spreadsheet"></i> CSV</button>
+      <button class="btn btn-secondary" type="button" onclick="exportHTML()"><i class="ti ti-file-code"></i> Informe HTML</button>
+      <button class="btn btn-secondary" type="button" onclick="exportR()"><i class="ti ti-brand-r"></i> Código R</button>
+      <button class="btn btn-secondary" type="button" onclick="exportJSON()"><i class="ti ti-braces"></i> JSON</button>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" type="button" onclick="go(3)"><i class="ti ti-arrow-left"></i> Sensibilidad</button>
+    </div>
+
+    <div class="limits">
+      <strong>Límites reales:</strong> DerSimonian-Laird e inversa de varianza. No incluye meta-regresión multivariable ni modelos multinivel.
+      Forest/funnel orientativos — verifica con <em>metafor</em> para publicación (la app genera el script).
+      GRADE es una guía asistida, no un certificado. Egger con k &lt; 10 tiene potencia baja.
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <p><strong>MetaAnálisisIA</strong> · <a href="https://orcid.org/0000-0002-5519-4573" target="_blank" rel="noopener">Fernando Borrás Rocher</a> · Universidad Miguel Hernández de Elche</p>
+  <p style="margin-top:5px"><a href="https://fborrasumh.github.io/ia/" target="_blank" rel="noopener">Catálogo de herramientas IA</a> · Licencia MIT · v0.2.0</p>
+</footer>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   MetaAnálisisIA v0.2 — estadística en el navegador
+   ═══════════════════════════════════════════════════════════ */
+
+const STEPS = 5;
+let studies = [];
+let metaResult = null;
+let metaFE = null;
+let metaRE = null;
+let looResults = [];
+let cumulResults = [];
+
+/* ── Navegación ── */
+function go(i) {
+  document.querySelectorAll('.panel').forEach((p, idx) => p.classList.toggle('active', idx === i));
+  document.querySelectorAll('.stepper button').forEach((b, idx) => {
+    b.classList.toggle('active', idx === i);
+    b.classList.toggle('done', idx < i);
+  });
+  if (i === 2 && metaResult) { drawForest(); drawFunnel(); }
+  if (i === 3 && looResults.length) { drawInfluence(); drawCumulative(); }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('#resultTabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#panel-2 .tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'forest') drawForest();
+  if (name === 'funnel') drawFunnel();
+}
+
+function showSensTab(name, btn) {
+  document.querySelectorAll('#sensTabs button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#panel-3 .tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('stab-' + name).classList.add('active');
+  if (name === 'influence') drawInfluence();
+  if (name === 'cumulative') drawCumulative();
+}
+
+/* ── Demo ── */
+const DEMO_CSV = `study,yi,sei,ni,group
+Smith 2018,0.42,0.15,120,Farmacológico
+Jones 2019,0.18,0.22,85,Conductual
+Garcia 2020,0.55,0.18,200,Farmacológico
+Lee 2021,0.31,0.12,310,Conductual
+Muller 2022,0.09,0.25,64,Farmacológico
+Chen 2023,0.48,0.14,175,Conductual
+Rossi 2024,0.22,0.19,95,Farmacológico
+Nguyen 2024,0.37,0.16,140,Conductual`;
+
+function loadDemo() {
+  document.getElementById('rawData').value = DEMO_CSV;
+  parseRaw();
+}
+
+function handleFile(ev) {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = e => { document.getElementById('rawData').value = e.target.result; parseRaw(); };
+  reader.readAsText(f);
+}
+
+/* ── Parsing ── */
+function parseRaw() {
+  const text = document.getElementById('rawData').value.trim();
+  if (!text) { alert('Pega o carga datos primero.'); return; }
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { alert('Se necesita cabecera + al menos una fila.'); return; }
+
+  const sep = (lines[0].match(/\t/g) || []).length >= (lines[0].match(/,/g) || []).length ? '\t' : ',';
+  const headers = lines[0].split(sep).map(h => h.trim().toLowerCase().replace(/['"]/g, ''));
+
+  const col = (cands) => { for (const c of cands) { const i = headers.indexOf(c); if (i >= 0) return i; } return -1; };
+
+  const iStudy = col(['study','author','estudios','estudio','name','id']);
+  const iYi   = col(['yi','effect','es','logor','log_or','md','smd','d','g']);
+  const iSei  = col(['sei','se','stderr','se_yi','se_effect','std.error']);
+  const iNi   = col(['ni','n','n1','sample','samplesize','total']);
+  const iGrp = col(['group','subgroup','subgrupo','grupo','arm','type']);
+  const iOR   = col(['or','oddsratio','odds_ratio']);
+  const iRR   = col(['rr','riskratio','risk_ratio']);
+  const iCIlo = col(['ci_low','cilow','lower','ci.lb','ll','ci95_low']);
+  const iCIhi = col(['ci_high','cihigh','upper','ci.ub','ul','ci95_high']);
+
+  studies = [];
+  for (let r = 1; r < lines.length; r++) {
+    const cells = lines[r].split(sep).map(c => c.trim().replace(/['"]/g, ''));
+    if (cells.every(c => !c)) continue;
+    let study = iStudy >= 0 ? cells[iStudy] : `Estudio ${r}`;
+    let yi, sei;
+    if (iYi >= 0 && iSei >= 0) {
+      yi = parseFloat(cells[iYi]); sei = parseFloat(cells[iSei]);
+    } else if ((iOR >= 0 || iRR >= 0) && iCIlo >= 0 && iCIhi >= 0) {
+      const effect = parseFloat(cells[iOR >= 0 ? iOR : iRR]);
+      const lo = parseFloat(cells[iCIlo]), hi = parseFloat(cells[iCIhi]);
+      if (effect > 0 && lo > 0 && hi > 0) {
+        yi = Math.log(effect);
+        sei = (Math.log(hi) - Math.log(lo)) / (2 * 1.959964);
+      }
+    } else continue;
+    if (!isFinite(yi) || !isFinite(sei) || sei <= 0) continue;
+    const ni = iNi >= 0 ? parseFloat(cells[iNi]) : undefined;
+    const group = iGrp >= 0 ? (cells[iGrp] || '') : '';
+    studies.push({ study, yi, sei, ni: isFinite(ni) ? ni : undefined, group });
+  }
+
+  if (studies.length < 2) {
+    alert('Se necesitan ≥ 2 estudios válidos con yi+sei (o OR/RR + IC).');
+    return;
+  }
+  renderDataTable();
+  document.getElementById('dataPreview').style.display = 'block';
+  document.getElementById('nStudies').textContent = studies.length;
+  const msg = document.getElementById('dataMsg');
+  const hasGroups = studies.some(s => s.group);
+  msg.innerHTML = hasGroups
+    ? `<div class="msg msg-ok"><i class="ti ti-check"></i> ${studies.length} estudios cargados · columna de subgrupos detectada.</div>`
+    : `<div class="msg msg-ok"><i class="ti ti-check"></i> ${studies.length} estudios cargados.</div>`;
+}
+
+function renderDataTable() {
+  const tb = document.querySelector('#dataTable tbody');
+  tb.innerHTML = '';
+  studies.forEach((s, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${esc(s.study)}" onchange="studies[${idx}].study=this.value" style="min-width:120px"></td>
+      <td><input type="text" value="${s.yi}" onchange="studies[${idx}].yi=parseFloat(this.value)" style="width:72px"></td>
+      <td><input type="text" value="${s.sei}" onchange="studies[${idx}].sei=parseFloat(this.value)" style="width:72px"></td>
+      <td><input type="text" value="${s.ni ?? ''}" onchange="studies[${idx}].ni=parseFloat(this.value)||undefined" style="width:56px"></td>
+      <td><input type="text" value="${esc(s.group||'')}" onchange="studies[${idx}].group=this.value" style="width:100px"></td>
+      <td><button class="btn btn-ghost" type="button" title="Eliminar" onclick="studies.splice(${idx},1);renderDataTable();document.getElementById('nStudies').textContent=studies.length"><i class="ti ti-trash"></i></button></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function addEmptyRow() {
+  if (!studies.length) {
+    studies = [{ study: 'Estudio 1', yi: 0, sei: 0.2, ni: undefined, group: '' }];
+    document.getElementById('dataPreview').style.display = 'block';
+  } else {
+    studies.push({ study: `Estudio ${studies.length + 1}`, yi: 0, sei: 0.2, ni: undefined, group: '' });
+  }
+  renderDataTable();
+  document.getElementById('nStudies').textContent = studies.length;
+}
+
+function esc(t) {
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+}
+
+/* ── Estadística ── */
+function metaAnalyse(data, model = 'RE', conf = 0.95) {
+  const k = data.length;
+  if (k < 2) return null;
+  const z = invNorm((1 + conf) / 2);
+
+  const vi = data.map(d => d.sei * d.sei);
+  const wi = vi.map(v => 1 / v);
+  let sumW = 0, sumWY = 0, sumW2 = 0;
+  for (let i = 0; i < k; i++) { sumW += wi[i]; sumWY += wi[i] * data[i].yi; sumW2 += wi[i] * wi[i]; }
+  const FE = sumWY / sumW;
+  const seFE = Math.sqrt(1 / sumW);
+
+  let Q = 0;
+  for (let i = 0; i < k; i++) Q += wi[i] * (data[i].yi - FE) ** 2;
+  const df = k - 1;
+  const pQ = 1 - chi2cdf(Q, df);
+  const I2 = Q > 0 ? Math.max(0, ((Q - df) / Q) * 100) : 0;
+  const C = sumW - sumW2 / sumW;
+  const tau2 = Math.max(0, (Q - df) / C);
+
+  const wiRE = data.map((_, i) => 1 / (vi[i] + tau2));
+  let sumWRE = 0, sumWYRE = 0;
+  for (let i = 0; i < k; i++) { sumWRE += wiRE[i]; sumWYRE += wiRE[i] * data[i].yi; }
+  const RE = sumWYRE / sumWRE;
+  const seRE = Math.sqrt(1 / sumWRE);
+
+  const useRE = model === 'RE';
+  const effect = useRE ? RE : FE;
+  const se = useRE ? seRE : seFE;
+  const weights = useRE ? wiRE : wi;
+  const sumWeights = useRE ? sumWRE : sumW;
+  const weightPct = weights.map(w => (w / sumWeights) * 100);
+
+  // Prediction interval (RE only)
+  let pi_low = null, pi_high = null;
+  if (useRE && k >= 3) {
+    const tcrit = invT(conf, df); // approx
+    const sePI = Math.sqrt(tau2 + se * se);
+    pi_low = effect - tcrit * sePI;
+    pi_high = effect + tcrit * sePI;
+  }
+
+  // Egger test (regression of standardized effect on precision)
+  let egger = null;
+  if (k >= 3) {
+    egger = eggerTest(data);
+  }
+
+  return {
+    k, model, effect, se,
+    ci_low: effect - z * se, ci_high: effect + z * se,
+    pval: 2 * (1 - normCdf(Math.abs(effect / se))),
+    Q, df, pQ, I2, tau2, FE, seFE, RE, seRE,
+    pi_low, pi_high, egger,
+    weights: weightPct,
+    studies: data.map((d, i) => ({
+      ...d, weight: weightPct[i],
+      ci_low: d.yi - z * d.sei, ci_high: d.yi + z * d.sei
+    }))
+  };
+}
+
+function eggerTest(data) {
+  // Standardized effect (yi/sei) ~ precision (1/sei)
+  const k = data.length;
+  const x = data.map(d => 1 / d.sei);
+  const y = data.map(d => d.yi / d.sei);
+  const xMean = x.reduce((a, b) => a + b, 0) / k;
+  const yMean = y.reduce((a, b) => a + b, 0) / k;
+  let sxx = 0, sxy = 0, syy = 0;
+  for (let i = 0; i < k; i++) {
+    sxx += (x[i] - xMean) ** 2;
+    sxy += (x[i] - xMean) * (y[i] - yMean);
+    syy += (y[i] - yMean) ** 2;
+  }
+  if (sxx === 0) return null;
+  const slope = sxy / sxx;
+  const intercept = yMean - slope * xMean;
+  const residSS = syy - slope * sxy;
+  const seIntercept = Math.sqrt(residSS / (k - 2) / sxx * (1 / k * sxx + xMean * xMean)); // simplified
+  // Better SE for intercept:
+  const mse = residSS / (k - 2);
+  const seInt = Math.sqrt(mse * (1 / k + xMean * xMean / sxx));
+  const t = intercept / seInt;
+  const p = 2 * (1 - tCdf(Math.abs(t), k - 2));
+  return { intercept, se: seInt, t, p, k };
+}
+
+/* Distribuciones */
+function normCdf(x) {
+  const t = 1 / (1 + 0.2316419 * Math.abs(x));
+  const d = 0.3989423 * Math.exp(-x * x / 2);
+  const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+  return x > 0 ? 1 - p : p;
+}
+function invNorm(p) {
+  // Beasley-Springer-Moro approx
+  const a = [0, -3.969683028665376e+01, 2.209460984245205e+02, -2.759285104469687e+02, 1.383577518672690e+02, -3.066479806614716e+01, 2.506628277459239e+00];
+  const b = [0, -5.447609879822406e+01, 1.615858368580409e+02, -1.556989798598866e+02, 6.680131188771972e+01, -1.328068155288572e+01];
+  const c = [0, -7.784894002430293e-03, -3.223964580411365e-01, -2.400758277161838e+00, -2.549732539343734e+00, 4.374664141464968e+00, 2.938163982698783e+00];
+  const d = [0, 7.784695709041462e-03, 3.224671290700398e-01, 2.445134137142996e+00, 3.754408661907416e+00];
+  const pLow = 0.02425, pHigh = 1 - pLow;
+  let q, r;
+  if (p < pLow) {
+    q = Math.sqrt(-2 * Math.log(p));
+    return (((((c[1]*q+c[2])*q+c[3])*q+c[4])*q+c[5])*q+c[6]) / ((((d[1]*q+d[2])*q+d[3])*q+d[4])*q+1);
+  }
+  if (p <= pHigh) {
+    q = p - 0.5; r = q * q;
+    return (((((a[1]*r+a[2])*r+a[3])*r+a[4])*r+a[5])*r+a[6])*q / (((((b[1]*r+b[2])*r+b[3])*r+b[4])*r+b[5])*r+1);
+  }
+  q = Math.sqrt(-2 * Math.log(1 - p));
+  return -(((((c[1]*q+c[2])*q+c[3])*q+c[4])*q+c[5])*q+c[6]) / ((((d[1]*q+d[2])*q+d[3])*q+d[4])*q+1);
+}
+function chi2cdf(q, df) {
+  if (q <= 0) return 0;
+  const h = 2 / (9 * df);
+  const z = ((q / df) ** (1 / 3) - (1 - h)) / Math.sqrt(h);
+  return normCdf(z);
+}
+function invT(conf, df) {
+  // Rough approximation via normal for df > 30, else slight inflation
+  const z = invNorm((1 + conf) / 2);
+  if (df > 30) return z;
+  return z * (1 + (z * z + 1) / (4 * df));
+}
+function tCdf(t, df) {
+  // Approx via normal for simplicity when df is moderate
+  const z = t * (1 - 1 / (4 * df));
+  return normCdf(z);
+}
+
+/* ── Run meta ── */
+function runMeta() {
+  if (studies.length < 2) { alert('Necesitas ≥ 2 estudios.'); go(0); return; }
+  const model = document.getElementById('model').value;
+  const conf = parseFloat(document.getElementById('confLevel').value) / 100 || 0.95;
+  metaResult = metaAnalyse(studies, model, conf);
+  metaFE = metaAnalyse(studies, 'FE', conf);
+  metaRE = metaAnalyse(studies, 'RE', conf);
+  renderSummary();
+  renderCompare();
+  renderWeights();
+  renderSubgroups();
+  drawForest();
+  drawFunnel();
+  explainHetero();
+  showPredInterval();
+  showEgger();
+}
+
+function fmt(x, d = 3) { return isFinite(x) ? Number(x).toFixed(d) : '—'; }
+
+function renderSummary() {
+  const r = metaResult;
+  const el = document.getElementById('summaryStats');
+  el.innerHTML = `
+    <div class="stat-card"><div class="val">${fmt(r.effect)}</div><div class="lbl">Efecto</div></div>
+    <div class="stat-card"><div class="val small">${fmt(r.ci_low)} – ${fmt(r.ci_high)}</div><div class="lbl">IC 95 %</div></div>
+    <div class="stat-card"><div class="val">${fmt(r.I2, 1)}%</div><div class="lbl">I²</div></div>
+    <div class="stat-card"><div class="val">${fmt(r.tau2, 4)}</div><div class="lbl">τ²</div></div>
+    <div class="stat-card"><div class="val">${fmt(r.Q, 2)}</div><div class="lbl">Q (df=${r.df})</div></div>
+    <div class="stat-card"><div class="val">${r.pval < 0.001 ? '<0.001' : fmt(r.pval, 3)}</div><div class="lbl">p-valor</div></div>
+  `;
+  document.getElementById('resultHint').textContent =
+    `Modelo: ${r.model === 'RE' ? 'efectos aleatorios (DL)' : 'efectos fijos'} · k = ${r.k}`;
+}
+
+function renderCompare() {
+  const box = document.getElementById('compareBox');
+  if (document.getElementById('compareModels').value !== 'yes') { box.style.display = 'none'; return; }
+  box.style.display = 'block';
+  document.getElementById('compareGrid').innerHTML = `
+    <div class="compare-card">
+      <h4>Efectos fijos</h4>
+      <div class="big">${fmt(metaFE.effect)}</div>
+      <div class="meta">IC 95 %: ${fmt(metaFE.ci_low)} – ${fmt(metaFE.ci_high)}</div>
+      <div class="meta">p = ${metaFE.pval < 0.001 ? '<0.001' : fmt(metaFE.pval, 3)}</div>
+    </div>
+    <div class="compare-card">
+      <h4>Efectos aleatorios (DL)</h4>
+      <div class="big">${fmt(metaRE.effect)}</div>
+      <div class="meta">IC 95 %: ${fmt(metaRE.ci_low)} – ${fmt(metaRE.ci_high)}</div>
+      <div class="meta">I² = ${fmt(metaRE.I2,1)}% · τ² = ${fmt(metaRE.tau2,4)}</div>
+    </div>`;
+}
+
+function renderWeights() {
+  const tb = document.querySelector('#weightsTable tbody');
+  tb.innerHTML = metaResult.studies.map(s => `
+    <tr>
+      <td>${esc(s.study)}</td>
+      <td>${fmt(s.yi)}</td>
+      <td>${fmt(s.sei)}</td>
+      <td><strong>${fmt(s.weight,1)}%</strong></td>
+      <td>${fmt(s.ci_low)} – ${fmt(s.ci_high)}</td>
+    </tr>`).join('');
+}
+
+function renderSubgroups() {
+  const el = document.getElementById('subgroupContent');
+  const groups = [...new Set(studies.map(s => s.group).filter(Boolean))];
+  if (!groups.length) {
+    el.innerHTML = `<p class="hint">No hay columna <code>group</code>. Añádela en los datos para ver subgrupos.</p>`;
+    return;
+  }
+  const conf = parseFloat(document.getElementById('confLevel').value) / 100 || 0.95;
+  const model = document.getElementById('model').value;
+  let html = '';
+  groups.forEach(g => {
+    const sub = studies.filter(s => s.group === g);
+    if (sub.length < 2) {
+      html += `<div class="msg msg-amber"><i class="ti ti-alert-triangle"></i> Subgrupo «${esc(g)}»: solo ${sub.length} estudio(s) — no se calcula.</div>`;
+      return;
+    }
+    const res = metaAnalyse(sub, model, conf);
+    html += `<div class="compare-card" style="margin-bottom:10px">
+      <h4>${esc(g)} · k = ${res.k}</h4>
+      <div class="big">${fmt(res.effect)}</div>
+      <div class="meta">IC 95 %: ${fmt(res.ci_low)} – ${fmt(res.ci_high)} · I² = ${fmt(res.I2,1)}%</div>
+    </div>`;
+  });
+  el.innerHTML = html;
+}
+
+function showPredInterval() {
+  const box = document.getElementById('predInterval');
+  const r = metaResult;
+  if (r.model === 'RE' && r.pi_low != null) {
+    box.style.display = 'flex';
+    box.innerHTML = `<i class="ti ti-arrows-horizontal"></i>
+      <div><strong>Intervalo de predicción 95 %:</strong> ${fmt(r.pi_low)} a ${fmt(r.pi_high)}.
+      Indica el rango esperado para el verdadero efecto en un <em>nuevo</em> estudio similar.</div>`;
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+function showEgger() {
+  const box = document.getElementById('eggerBox');
+  const e = metaResult.egger;
+  if (!e) { box.style.display = 'none'; return; }
+  box.style.display = 'flex';
+  const sig = e.p < 0.05;
+  box.className = 'msg ' + (sig ? 'msg-warn' : 'msg-info');
+  box.innerHTML = `<i class="ti ti-${sig ? 'alert-triangle' : 'info-circle'}"></i>
+    <div><strong>Prueba de Egger</strong> (asimetría del funnel): intercept = ${fmt(e.intercept, 3)},
+    t = ${fmt(e.t, 2)}, p = ${e.p < 0.001 ? '<0.001' : fmt(e.p, 3)}.
+    ${sig ? 'Posible sesgo de publicación o heterogeneidad de tamaño pequeño.' : 'No se detecta asimetría significativa (potencia limitada si k &lt; 10).'}
+    </div>`;
+}
+
+function explainHetero() {
+  const r = metaResult;
+  const box = document.getElementById('heteroExplain');
+  let level, tip;
+  if (r.I2 < 25) { level = 'baja'; tip = 'La mayor parte de la variabilidad se debe al azar.'; }
+  else if (r.I2 < 50) { level = 'moderada'; tip = 'Conviene explorar fuentes (población, intervención, riesgo de sesgo).'; }
+  else if (r.I2 < 75) { level = 'sustancial'; tip = 'El modelo de efectos aleatorios es preferible; interpreta con cautela.'; }
+  else { level = 'considerable'; tip = 'Revisa si tiene sentido combinar estos estudios.'; }
+  box.style.display = 'flex';
+  box.innerHTML = `<i class="ti ti-books"></i>
+    <div><strong>Heterogeneidad ${level}</strong> (I² = ${fmt(r.I2,1)} %). ${tip}
+    Q = ${fmt(r.Q,2)} (df = ${r.df}, p ${r.pQ < 0.001 ? '&lt; 0.001' : '= ' + fmt(r.pQ,3)}).
+    τ² = ${fmt(r.tau2,4)} estima la varianza entre estudios.</div>`;
+}
+
+/* ── Forest plot ── */
+function drawForest() {
+  const canvas = document.getElementById('forestCanvas');
+  if (!canvas || !metaResult) return;
+  const ctx = canvas.getContext('2d');
+  const r = metaResult;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+
+  const leftLabel = 170, rightStats = 210;
+  const plotL = leftLabel + 10, plotR = W - rightStats - 10, plotW = plotR - plotL;
+  let minX = Math.min(...r.studies.map(s => s.ci_low), r.ci_low, r.pi_low ?? Infinity);
+  let maxX = Math.max(...r.studies.map(s => s.ci_high), r.ci_high, r.pi_high ?? -Infinity);
+  const pad = (maxX - minX) * 0.1 || 0.2;
+  minX -= pad; maxX += pad;
+  const xScale = v => plotL + ((v - minX) / (maxX - minX)) * plotW;
+  const rowH = Math.min(34, (H - 80) / (r.k + 2));
+  const top = 44;
+
+  // Header
+  ctx.fillStyle = '#161513';
+  ctx.font = '700 13px Sora, sans-serif';
+  ctx.fillText('Forest plot', 14, 24);
+  ctx.font = '11px Inter, sans-serif';
+  ctx.fillStyle = '#6f6d67';
+  ctx.fillText(r.model === 'RE' ? 'Efectos aleatorios (DL)' : 'Efectos fijos', 120, 24);
+
+  // Null line
+  const zero = xScale(0);
+  ctx.strokeStyle = '#ddd'; ctx.setLineDash([5, 4]); ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(zero, top - 8); ctx.lineTo(zero, top + rowH * (r.k + 1.2)); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Studies
+  r.studies.forEach((s, i) => {
+    const y = top + rowH * (i + 0.5);
+    ctx.fillStyle = '#161513';
+    ctx.font = '12.5px Inter, sans-serif';
+    ctx.textAlign = 'left';
+    const name = s.study.length > 24 ? s.study.slice(0, 22) + '…' : s.study;
+    ctx.fillText(name, 10, y + 4);
+
+    // CI
+    ctx.strokeStyle = '#0f5c42'; ctx.lineWidth = 1.6;
+    ctx.beginPath(); ctx.moveTo(xScale(s.ci_low), y); ctx.lineTo(xScale(s.ci_high), y); ctx.stroke();
+
+    // Box proportional to weight
+    const size = 4 + Math.sqrt(s.weight) * 0.85;
+    ctx.fillStyle = '#0f5c42';
+    ctx.fillRect(xScale(s.yi) - size / 2, y - size / 2, size, size);
+
+    ctx.fillStyle = '#555';
+    ctx.font = '11px Inter, sans-serif';
+    ctx.fillText(`${fmt(s.yi,2)} [${fmt(s.ci_low,2)}, ${fmt(s.ci_high,2)}]  ${fmt(s.weight,1)}%`, plotR + 6, y + 4);
+  });
+
+  // Diamond
+  const yD = top + rowH * (r.k + 0.55);
+  const dL = xScale(r.ci_low), dR = xScale(r.ci_high), dM = xScale(r.effect);
+  ctx.fillStyle = '#161513';
+  ctx.beginPath();
+  ctx.moveTo(dL, yD); ctx.lineTo(dM, yD - 8); ctx.lineTo(dR, yD); ctx.lineTo(dM, yD + 8);
+  ctx.closePath(); ctx.fill();
+
+  // Prediction interval bar
+  if (r.pi_low != null) {
+    ctx.strokeStyle = '#9a7209'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(xScale(r.pi_low), yD + 14); ctx.lineTo(xScale(r.pi_high), yD + 14);
+    ctx.stroke();
+    ctx.fillStyle = '#9a7209';
+    ctx.beginPath(); ctx.arc(xScale(r.pi_low), yD + 14, 2.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(xScale(r.pi_high), yD + 14, 2.5, 0, Math.PI * 2); ctx.fill();
+  }
+
+  ctx.fillStyle = '#161513';
+  ctx.font = '700 12px Inter, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.fillText('Combinado', 10, yD + 4);
+  ctx.font = '11px Inter, sans-serif';
+  ctx.fillStyle = '#555';
+  ctx.fillText(`${fmt(r.effect,2)} [${fmt(r.ci_low,2)}, ${fmt(r.ci_high,2)}]`, plotR + 6, yD + 4);
+
+  // Axis
+  const axisY = top + rowH * (r.k + 1.5) + 10;
+  ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(plotL, axisY); ctx.lineTo(plotR, axisY); ctx.stroke();
+  ctx.fillStyle = '#777'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'center';
+  for (let t = 0; t <= 5; t++) {
+    const v = minX + (maxX - minX) * (t / 5);
+    ctx.fillText(fmt(v, 2), xScale(v), axisY + 14);
+  }
+}
+
+/* ── Funnel ── */
+function drawFunnel() {
+  const canvas = document.getElementById('funnelCanvas');
+  if (!canvas || !metaResult) return;
+  const ctx = canvas.getContext('2d');
+  const r = metaResult;
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+
+  const m = { t: 36, r: 24, b: 44, l: 52 };
+  const pW = W - m.l - m.r, pH = H - m.t - m.b;
+  const seMax = Math.max(...r.studies.map(s => s.sei)) * 1.2;
+  const xMin = r.effect - 2.8 * seMax, xMax = r.effect + 2.8 * seMax;
+  const xS = v => m.l + ((v - xMin) / (xMax - xMin)) * pW;
+  const yS = se => m.t + (se / seMax) * pH;
+
+  // Funnel region
+  ctx.fillStyle = 'rgba(15,92,66,0.06)';
+  ctx.beginPath();
+  ctx.moveTo(xS(r.effect), m.t);
+  ctx.lineTo(xS(r.effect - 1.96 * seMax), m.t + pH);
+  ctx.lineTo(xS(r.effect + 1.96 * seMax), m.t + pH);
+  ctx.closePath(); ctx.fill();
+
+  // Contour lines
+  ctx.strokeStyle = 'rgba(15,92,66,0.15)'; ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(xS(r.effect), m.t); ctx.lineTo(xS(r.effect - 1.96 * seMax), m.t + pH); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(xS(r.effect), m.t); ctx.lineTo(xS(r.effect + 1.96 * seMax), m.t + pH); ctx.stroke();
+
+  // Effect line
+  ctx.strokeStyle = '#0f5c42'; ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(xS(r.effect), m.t); ctx.lineTo(xS(r.effect), m.t + pH); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Points
+  r.studies.forEach(s => {
+    ctx.fillStyle = '#0f5c42';
+    ctx.beginPath(); ctx.arc(xS(s.yi), yS(s.sei), 5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(xS(s.yi), yS(s.sei), 5, 0, Math.PI * 2); ctx.stroke();
+  });
+
+  // Axes
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(m.l, m.t); ctx.lineTo(m.l, m.t + pH); ctx.lineTo(m.l + pW, m.t + pH); ctx.stroke();
+  ctx.fillStyle = '#555'; ctx.font = '11px Inter, sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('Efecto', m.l + pW / 2, H - 10);
+  ctx.save(); ctx.translate(14, m.t + pH / 2); ctx.rotate(-Math.PI / 2);
+  ctx.fillText('Error estándar', 0, 0); ctx.restore();
+  ctx.font = '700 13px Sora, sans-serif'; ctx.fillStyle = '#161513'; ctx.textAlign = 'left';
+  ctx.fillText('Funnel plot', 14, 22);
+}
+
+/* ── Sensibilidad ── */
+function runSensitivity() {
+  if (!metaResult) runMeta();
+  const conf = parseFloat(document.getElementById('confLevel').value) / 100 || 0.95;
+  looResults = [];
+  for (let i = 0; i < studies.length; i++) {
+    const subset = studies.filter((_, j) => j !== i);
+    const res = metaAnalyse(subset, metaResult.model, conf);
+    looResults.push({
+      omitted: studies[i].study,
+      effect: res.effect, ci_low: res.ci_low, ci_high: res.ci_high,
+      I2: res.I2, delta: res.effect - metaResult.effect
+    });
+  }
+  // Cumulative: order by SE ascending
+  const ordered = [...studies].sort((a, b) => a.sei - b.sei);
+  cumulResults = [];
+  for (let i = 1; i <= ordered.length; i++) {
+    if (i < 2) continue;
+    const sub = ordered.slice(0, i);
+    const res = metaAnalyse(sub, metaResult.model, conf);
+    cumulResults.push({ n: i, last: sub[sub.length - 1].study, effect: res.effect, ci_low: res.ci_low, ci_high: res.ci_high, I2: res.I2 });
+  }
+  renderLOO();
+  drawInfluence();
+  drawCumulative();
+}
+
+function renderLOO() {
+  const tb = document.querySelector('#looTable tbody');
+  tb.innerHTML = looResults.map(r => {
+    const flag = Math.abs(r.delta) > 0.05;
+    return `<tr>
+      <td>${esc(r.omitted)}</td>
+      <td>${fmt(r.effect)}</td>
+      <td>${fmt(r.ci_low)} – ${fmt(r.ci_high)}</td>
+      <td>${fmt(r.I2,1)}%</td>
+      <td>${flag ? `<span class="chip chip-warn">${r.delta >= 0 ? '+' : ''}${fmt(r.delta)}</span>` : (r.delta >= 0 ? '+' : '') + fmt(r.delta)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function drawInfluence() {
+  const canvas = document.getElementById('influenceCanvas');
+  if (!canvas || !looResults.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+
+  const m = { t: 36, r: 20, b: 70, l: 50 };
+  const pW = W - m.l - m.r, pH = H - m.t - m.b;
+  const deltas = looResults.map(r => r.delta);
+  const maxAbs = Math.max(...deltas.map(Math.abs), 0.05);
+  const gap = pW / looResults.length, barW = gap * 0.65;
+  const y0 = m.t + pH / 2;
+
+  ctx.strokeStyle = '#ddd'; ctx.beginPath(); ctx.moveTo(m.l, y0); ctx.lineTo(m.l + pW, y0); ctx.stroke();
+
+  looResults.forEach((r, i) => {
+    const x = m.l + gap * i + gap * 0.15;
+    const h = (r.delta / maxAbs) * (pH / 2);
+    ctx.fillStyle = r.delta >= 0 ? '#0f5c42' : '#b83a0c';
+    if (r.delta >= 0) ctx.fillRect(x, y0 - h, barW, h);
+    else ctx.fillRect(x, y0, barW, -h);
+    ctx.save();
+    ctx.translate(x + barW / 2, m.t + pH + 10);
+    ctx.rotate(-Math.PI / 3.5);
+    ctx.fillStyle = '#555'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(r.omitted.length > 16 ? r.omitted.slice(0, 14) + '…' : r.omitted, 0, 0);
+    ctx.restore();
+  });
+
+  ctx.fillStyle = '#161513'; ctx.font = '700 13px Sora, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Cambio en el efecto al omitir cada estudio', 14, 22);
+}
+
+function drawCumulative() {
+  const canvas = document.getElementById('cumulCanvas');
+  if (!canvas || !cumulResults.length) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, W, H);
+
+  const m = { t: 40, r: 30, b: 50, l: 55 };
+  const pW = W - m.l - m.r, pH = H - m.t - m.b;
+  let minY = Math.min(...cumulResults.map(r => r.ci_low));
+  let maxY = Math.max(...cumulResults.map(r => r.ci_high));
+  const pad = (maxY - minY) * 0.1 || 0.1;
+  minY -= pad; maxY += pad;
+  const xS = i => m.l + (i / (cumulResults.length - 1 || 1)) * pW;
+  const yS = v => m.t + pH - ((v - minY) / (maxY - minY)) * pH;
+
+  // CI band
+  ctx.fillStyle = 'rgba(15,92,66,0.1)';
+  ctx.beginPath();
+  cumulResults.forEach((r, i) => { const x = xS(i); i === 0 ? ctx.moveTo(x, yS(r.ci_high)) : ctx.lineTo(x, yS(r.ci_high)); });
+  for (let i = cumulResults.length - 1; i >= 0; i--) ctx.lineTo(xS(i), yS(cumulResults[i].ci_low));
+  ctx.closePath(); ctx.fill();
+
+  // Effect line
+  ctx.strokeStyle = '#0f5c42'; ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  cumulResults.forEach((r, i) => { const x = xS(i); i === 0 ? ctx.moveTo(x, yS(r.effect)) : ctx.lineTo(x, yS(r.effect)); });
+  ctx.stroke();
+
+  // Points
+  cumulResults.forEach((r, i) => {
+    ctx.fillStyle = '#0f5c42';
+    ctx.beginPath(); ctx.arc(xS(i), yS(r.effect), 4, 0, Math.PI * 2); ctx.fill();
+  });
+
+  // Zero
+  if (minY < 0 && maxY > 0) {
+    ctx.strokeStyle = '#ddd'; ctx.setLineDash([4, 3]);
+    ctx.beginPath(); ctx.moveTo(m.l, yS(0)); ctx.lineTo(m.l + pW, yS(0)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Axes
+  ctx.strokeStyle = '#bbb'; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(m.l, m.t); ctx.lineTo(m.l, m.t + pH); ctx.lineTo(m.l + pW, m.t + pH); ctx.stroke();
+  ctx.fillStyle = '#555'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'center';
+  cumulResults.forEach((r, i) => {
+    if (i % Math.ceil(cumulResults.length / 8) === 0 || i === cumulResults.length - 1)
+      ctx.fillText(r.n, xS(i), m.t + pH + 16);
+  });
+  ctx.fillText('Nº estudios acumulados', m.l + pW / 2, H - 8);
+  ctx.fillStyle = '#161513'; ctx.font = '700 13px Sora, sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Meta-análisis acumulativo', 14, 24);
+}
+
+/* ── GRADE ── */
+function buildGradeManual() {
+  const r = metaResult; if (!r) return;
+  let certainty = 'Moderada', comment = '';
+  const downs = [];
+  if (r.I2 >= 75) { downs.push('inconsistencia (I² alta)'); }
+  else if (r.I2 >= 50) { downs.push('inconsistencia moderada'); }
+  if (r.k < 5) downs.push('pocos estudios');
+  if (r.egger && r.egger.p < 0.05) downs.push('posible sesgo de publicación (Egger)');
+  const width = r.ci_high - r.ci_low;
+  if (width > Math.abs(r.effect) * 2) downs.push('imprecisión (IC amplio)');
+
+  if (downs.length >= 2) certainty = 'Baja';
+  else if (downs.length === 1) certainty = 'Moderada';
+  else certainty = 'Moderada-Alta';
+  comment = downs.length ? 'Downgrade por: ' + downs.join('; ') + '.' : 'Sin downgrades automáticos evidentes.';
+
+  document.querySelector('#gradeTable tbody').innerHTML = `
+    <tr>
+      <td>Efecto principal</td>
+      <td>${r.k}</td>
+      <td>${fmt(r.effect)} [${fmt(r.ci_low)}, ${fmt(r.ci_high)}]</td>
+      <td><span class="chip ${certainty.startsWith('Baja') ? 'chip-warn' : certainty.includes('Alta') ? 'chip-ok' : 'chip-amber'}">${certainty}</span></td>
+      <td>${comment}</td>
+    </tr>`;
+
+  document.getElementById('narrative').value =
+    `Se combinaron ${r.k} estudios mediante un modelo de ${r.model === 'RE' ? 'efectos aleatorios (DerSimonian-Laird)' : 'efectos fijos'}. ` +
+    `El efecto combinado fue ${fmt(r.effect)} (IC 95 %: ${fmt(r.ci_low)} a ${fmt(r.ci_high)}; p ${r.pval < 0.001 ? '< 0.001' : '= ' + fmt(r.pval, 3)}). ` +
+    `La heterogeneidad fue ${r.I2 < 25 ? 'baja' : r.I2 < 50 ? 'moderada' : r.I2 < 75 ? 'sustancial' : 'considerable'} ` +
+    `(I² = ${fmt(r.I2,1)} %, τ² = ${fmt(r.tau2,4)}, Q = ${fmt(r.Q,2)}, df = ${r.df}). ` +
+    (r.pi_low != null ? `El intervalo de predicción 95 % fue ${fmt(r.pi_low)} a ${fmt(r.pi_high)}. ` : '') +
+    (r.egger ? `La prueba de Egger ${r.egger.p < 0.05 ? 'sugiere posible asimetría (p = ' + fmt(r.egger.p, 3) + ')' : 'no detectó asimetría significativa (p = ' + fmt(r.egger.p, 3) + ')'}. ` : '') +
+    `Esta valoración es orientativa; se recomienda completar GRADE formal con evaluación de riesgo de sesgo, indirectness e imprecisión sobre el material completo de la revisión.`;
+}
+
+async function buildGradeAI() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) { alert('Introduce una API key o usa «GRADE sin IA».'); return; }
+  buildGradeManual();
+  const r = metaResult;
+  const provider = document.getElementById('aiProvider').value;
+  const model = document.getElementById('aiModel').value.trim() || 'gpt-4o-mini';
+  const prompt = `Eres metodólogo experto en revisiones sistemáticas y GRADE.
+A partir de estos resultados, redacta en español:
+1) Valoración GRADE simplificada (certeza: Alta/Moderada/Baja/Muy baja) con justificación de downgrades.
+2) Resumen narrativo de 130-180 palabras, neutral, listo para Resultados.
+
+Datos: k=${r.k}, modelo=${r.model}, efecto=${fmt(r.effect,4)}, IC95%=[${fmt(r.ci_low,4)}, ${fmt(r.ci_high,4)}], p=${r.pval}, I²=${fmt(r.I2,1)}%, τ²=${fmt(r.tau2,4)}, Q=${fmt(r.Q,2)} (df=${r.df})${r.egger ? `, Egger p=${fmt(r.egger.p,3)}` : ''}${r.pi_low != null ? `, PI=[${fmt(r.pi_low,3)}, ${fmt(r.pi_high,3)}]` : ''}.
+
+No inventes datos. Sé preciso.`;
+
+  try {
+    const text = await callAI(provider, model, key, prompt);
+    document.getElementById('narrative').value = text;
+    document.querySelector('#gradeTable tbody').innerHTML = `
+      <tr>
+        <td>Efecto principal</td><td>${r.k}</td>
+        <td>${fmt(r.effect)} [${fmt(r.ci_low)}, ${fmt(r.ci_high)}]</td>
+        <td>Ver narrativa</td>
+        <td>Sugerencia IA — revisar y editar.</td>
+      </tr>`;
+  } catch (err) {
+    alert('Error IA: ' + err.message);
+  }
+}
+
+async function callAI(provider, model, key, prompt) {
+  if (provider === 'openai') {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+      body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.3 })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).choices[0].message.content;
+  }
+  if (provider === 'anthropic') {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({ model: model || 'claude-3-5-haiku-20241022', max_tokens: 1200, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).content[0].text;
+  }
+  if (provider === 'google') {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model || 'gemini-1.5-flash'}:generateContent?key=${key}`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return (await res.json()).candidates[0].content.parts[0].text;
+  }
+  throw new Error('Proveedor no soportado');
+}
+
+function syncModelPlaceholder() {
+  const p = document.getElementById('aiProvider').value;
+  const m = document.getElementById('aiModel');
+  if (p === 'openai') m.value = 'gpt-4o-mini';
+  else if (p === 'anthropic') m.value = 'claude-3-5-haiku-20241022';
+  else m.value = 'gemini-1.5-flash';
+}
+
+/* ── Export ── */
+function downloadCanvas(id, filename) {
+  const c = document.getElementById(id);
+  if (!c) return;
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = filename;
+  a.click();
+}
+
+function exportCSV() {
+  if (!metaResult) return;
+  let csv = 'study,yi,sei,weight_pct,ci_low,ci_high,group\n';
+  metaResult.studies.forEach(s => {
+    csv += `"${s.study}",${s.yi},${s.sei},${fmt(s.weight,2)},${s.ci_low},${s.ci_high},"${s.group||''}"\n`;
+  });
+  csv += `\nsummary_effect,${metaResult.effect}\nsummary_se,${metaResult.se}\nI2,${metaResult.I2}\ntau2,${metaResult.tau2}\nQ,${metaResult.Q}\n`;
+  downloadBlob(csv, 'metaanalisis_resultados.csv', 'text/csv');
+}
+
+function exportJSON() {
+  if (!metaResult) return;
+  const payload = {
+    meta: { effect: metaResult.effect, se: metaResult.se, ci: [metaResult.ci_low, metaResult.ci_high], I2: metaResult.I2, tau2: metaResult.tau2, Q: metaResult.Q, model: metaResult.model, k: metaResult.k },
+    studies: metaResult.studies,
+    egger: metaResult.egger,
+    narrative: document.getElementById('narrative').value
+  };
+  downloadBlob(JSON.stringify(payload, null, 2), 'metaanalisis.json', 'application/json');
+}
+
+function exportHTML() {
+  if (!metaResult) return;
+  const r = metaResult;
+  const narr = document.getElementById('narrative').value;
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Informe MetaAnálisisIA</title>
+<style>body{font-family:system-ui,sans-serif;max-width:720px;margin:40px auto;padding:0 16px;line-height:1.55;color:#161513}
+h1,h2{font-family:system-ui}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{border:1px solid #ddd;padding:7px 10px;text-align:left;font-size:13px}
+th{background:#f5f5f5} .meta{color:#666;font-size:13px}</style></head><body>
+<h1>Informe de meta-análisis</h1>
+<p class="meta">MetaAnálisisIA · ${new Date().toISOString().slice(0,10)} · Fernando Borrás Rocher (UMH)</p>
+<h2>Resumen</h2>
+<ul>
+<li>Estudios (k): ${r.k}</li>
+<li>Modelo: ${r.model === 'RE' ? 'Efectos aleatorios (DerSimonian-Laird)' : 'Efectos fijos'}</li>
+<li>Efecto: ${fmt(r.effect,4)} (IC 95 %: ${fmt(r.ci_low,4)} – ${fmt(r.ci_high,4)})</li>
+<li>p = ${r.pval < 0.001 ? '<0.001' : fmt(r.pval,4)}</li>
+<li>I² = ${fmt(r.I2,1)} % · τ² = ${fmt(r.tau2,4)} · Q = ${fmt(r.Q,2)} (df=${r.df})</li>
+${r.pi_low != null ? `<li>Intervalo de predicción 95 %: ${fmt(r.pi_low,3)} – ${fmt(r.pi_high,3)}</li>` : ''}
+${r.egger ? `<li>Egger: intercept = ${fmt(r.egger.intercept,3)}, p = ${fmt(r.egger.p,3)}</li>` : ''}
+</ul>
+<h2>Estudios</h2>
+<table><tr><th>Estudio</th><th>yi</th><th>SE</th><th>Peso %</th><th>Grupo</th></tr>
+${r.studies.map(s => `<tr><td>${esc(s.study)}</td><td>${fmt(s.yi)}</td><td>${fmt(s.sei)}</td><td>${fmt(s.weight,1)}</td><td>${esc(s.group||'')}</td></tr>`).join('')}
+</table>
+<h2>Resumen narrativo</h2>
+<p>${esc(narr).replace(/\n/g,'<br>')}</p>
+<p class="meta" style="margin-top:36px">Cálculos orientativos. Verificar con metafor/meta (R) para publicación.</p>
+</body></html>`;
+  downloadBlob(html, 'metaanalisis_informe.html', 'text/html');
+}
+
+function exportR() {
+  if (!metaResult) return;
+  const code = `# Generado por MetaAnálisisIA — ejecutar en R con metafor
+library(metafor)
+
+study <- c(${metaResult.studies.map(s => `"${s.study.replace(/"/g,'')}"`).join(', ')})
+yi    <- c(${metaResult.studies.map(s => s.yi).join(', ')})
+sei   <- c(${metaResult.studies.map(s => s.sei).join(', ')})
+${metaResult.studies.some(s => s.group) ? `group <- c(${metaResult.studies.map(s => `"${(s.group||'').replace(/"/g,'')}"`).join(', ')})` : ''}
+
+dat <- data.frame(study, yi, sei${metaResult.studies.some(s => s.group) ? ', group' : ''})
+
+res <- rma(yi = yi, sei = sei, data = dat, method = "${metaResult.model === 'RE' ? 'DL' : 'FE'}")
+summary(res)
+forest(res, slab = dat$study)
+funnel(res)
+regtest(res)          # Egger
+leave1out(res)
+${metaResult.studies.some(s => s.group) ? `
+# Subgrupos
+res.s <- rma(yi = yi, sei = sei, data = dat, method = "${metaResult.model === 'RE' ? 'DL' : 'FE'}", mods = ~ group)
+summary(res.s)` : ''}
+`;
+  downloadBlob(code, 'metaanalisis_metafor.R', 'text/plain');
+}
+
+function downloadBlob(content, filename, type) {
+  const blob = new Blob([content], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+</script>
+</body>
+</html>
