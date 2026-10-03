@@ -8,8 +8,12 @@ authors:
     given-names: "Fernando"
     orcid: "https://orcid.org/0000-0002-5519-4573"
     affiliation: "Universidad Miguel Hernández de Elche"
+  - family-names: "Quesada"
+    given-names: "José Antonio"
+    orcid: "https://orcid.org/0000-0002-6947-7531"
+    affiliation: "Universidad Miguel Hernández de Elche"
 license: MIT
-version: "0.2.0"
+version: "0.2.1"
 doi: "10.5281/zenodo.23124341"
 date-released: "2026-10-03"
 url: "https://fborrasumh.github.io/metaanalisisia/"

@@ -43,17 +43,17 @@ También se aceptan `or`/`rr` + `ci_low` + `ci_high` (conversión automática a 
 - GRADE es una guía asistida, no un certificado.
 - Egger con k < 10 tiene potencia baja.
 
-## Autor
+## Autores
 
-**Fernando Borrás Rocher**  
-Universidad Miguel Hernández de Elche  
-ORCID: [0000-0002-5519-4573](https://orcid.org/0000-0002-5519-4573)
+**Fernando Borrás Rocher** · Universidad Miguel Hernández de Elche · ORCID: [0000-0002-5519-4573](https://orcid.org/0000-0002-5519-4573)
+
+**José Antonio Quesada** · Universidad Miguel Hernández de Elche · ORCID: [0000-0002-6947-7531](https://orcid.org/0000-0002-6947-7531)
 
 ## Citar
 
 ```bibtex
 @software{BorrasRocher_MetaAnalisisIA_2026,
-  author  = {Borrás Rocher, Fernando},
+  author  = {Borrás Rocher, Fernando and Quesada, José Antonio},
   title   = {MetaAnálisisIA},
   version = {0.2.0},
   year    = {2026},
